@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Payment chk</title>
+</head>
+<body>
+
+    <script src="https://js.stripe.com/v3/"></script>
+    <form id="payment-form">
+        <div id="card-element">
+            <!-- A Stripe Element will be inserted here. -->
+        </div>
+        <button id="submit">Pagar</button>
+    </form>
+    
+    <div id="results">
+        
+    </div>
+    
+    
+
+    <script>
+        // Inicializa Stripe con tu clave pública
+        var stripe = Stripe('pk_live_51QQD23CxN7PG3EbaQZjwotrR7xATGO7buNc1MEehyK1b3cCpKNa4WhcjysARvOxN4ESmXYjCOCOFQd0OHFqhCACM00OBHj9pFn');  // Obtén esto desde tu cuenta de Stripe
+        var elements = stripe.elements();
+
+        // Crea un elemento para la tarjeta
+        var card = elements.create('card');
+        
+
+        // Monta el elemento en el DOM
+        card.mount('#card-element');
+        
+
+
+        // Maneja la presentación del formulario
+        var form = document.getElementById('payment-form');
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();  // Evita que el formulario se envíe de forma normal
+
+            stripe.createPaymentMethod({
+                type: 'card',
+                card: card,
+            }).then(function(result) {
+                if (result.error) {
+                    // Muestra un mensaje de error si ocurre un problema
+                    console.log(result.error.message);
+                } else {
+
+                    const data = {
+                        "paymentId": result.paymentMethod.id
+                    }
+
+                    const url = "http://localhost:5110/api/payment";
+
+                    // Configuración de la solicitud
+                    const options = {
+                        method: "POST", // Tipo de solicitud
+                        headers: {
+                            "Content-Type": "application/json" // Asegúrate de que el servidor pueda leer JSON
+                        },
+                        body: JSON.stringify(data) // Convierte los datos a formato JSON
+                    };
+                    
+                    // Realizar la solicitud POST con fetch
+                    fetch(url, options)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`Error: ${response.status}`); // Manejar errores HTTP
+                            }
+                            return response.json(); // Procesar la respuesta como JSON
+                        })
+                        .then(result => {
+
+                            document.getElementById("results").innerHTML = 
+                                `
+                                    <h1>Resultado</h1>
+                                    <p>Status: <b id="status-payment">${result.status}</b> </p>
+                                    <p>Detail: <b id="detail-payment">${result.paymentDetail}</b> </p>
+                                    <p>Message: <b id="message-payment">${result.paymentMessage}</b> </p>
+                                `
+                        })
+                        .catch(error => {
+                            console.error("Error:", error); // Manejar errores de red u otros problemas
+                        });
+                }
+            });
+        });
+
+    </script>
+
+</body>
+</html>
